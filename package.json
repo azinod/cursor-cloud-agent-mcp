@@ -1,0 +1,55 @@
+{
+  "name": "cursor-cloud-agent-mcp",
+  "version": "1.0.0",
+  "description": "Model Context Protocol server for Cursor Cloud Agents API - programmatically create, manage, and interact with AI-powered coding agents through MCP stdio transport. Integrate automated code generation, repository management, and agent workflows into your development tools.",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "cursor-agent-mcp": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx src/index.ts"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "cursor",
+    "cursor-api",
+    "cursor-cloud-agents",
+    "agent",
+    "ai-agent",
+    "coding-agent",
+    "cloud-agent",
+    "api",
+    "api-client",
+    "api-wrapper",
+    "automation",
+    "code-generation",
+    "github",
+    "repository",
+    "pull-request",
+    "pr",
+    "workflow",
+    "developer-tools",
+    "typescript",
+    "stdio",
+    "mcp-server",
+    "mcp-connector",
+    "integration",
+    "cli",
+    "command-line"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.3"
+  }
+}
+
