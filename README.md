@@ -24,10 +24,42 @@ The connector provides full programmatic control over Cursor's cloud-based AI ag
 ### Prerequisites
 
 - Node.js 18 or higher
-- npm or yarn package manager
+- npm (comes with Node.js)
 - A Cursor API key (obtainable from Cursor Dashboard → Integrations)
 
-### Setup Steps
+### Quick Start with npx (Recommended)
+
+The easiest way to use this MCP server is via `npx`, which downloads and runs the package without requiring a local installation:
+
+```bash
+npx cursor-cloud-agent-mcp
+```
+
+This will automatically use the latest version from npm. The server reads the `CURSOR_API_KEY` environment variable for authentication.
+
+### Local Installation (Optional)
+
+For local development or if you want to install globally:
+
+**Global installation:**
+```bash
+npm install -g cursor-cloud-agent-mcp
+```
+
+Then run:
+```bash
+cursor-cloud-agent-mcp
+```
+
+**Local installation:**
+```bash
+npm install cursor-cloud-agent-mcp
+npx cursor-cloud-agent-mcp
+```
+
+### Development Setup
+
+If you want to contribute or modify the code:
 
 1. Clone this repository:
 ```bash
@@ -73,12 +105,17 @@ The API key is tied to your organization and provides access to all repositories
 
 The server uses stdio transport for communication, which means it should be launched and managed by an MCP-compatible client application. The server reads from stdin and writes to stdout following the MCP protocol specification.
 
-**Production mode:**
+**Using npx (recommended):**
 ```bash
-node dist/index.js
+npx cursor-cloud-agent-mcp
 ```
 
-**Development mode (with TypeScript):**
+**Using globally installed package:**
+```bash
+cursor-cloud-agent-mcp
+```
+
+**Local development mode (with TypeScript):**
 ```bash
 npm run dev
 ```
@@ -87,7 +124,51 @@ npm run dev
 
 To integrate this server with an MCP client (such as Claude Desktop, custom MCP applications, or other Model Context Protocol implementations), add the following configuration to your MCP client settings:
 
-**Example configuration for Claude Desktop:**
+**Example configuration for Claude Desktop (using npx):**
+```json
+{
+  "mcpServers": {
+    "cursor-cloud-agents": {
+      "command": "npx",
+      "args": ["-y", "cursor-cloud-agent-mcp"],
+      "env": {
+        "CURSOR_API_KEY": "your-api-key-here"
+      }
+    }
+  }
+}
+```
+
+The `-y` flag automatically answers "yes" to the npm prompt, ensuring non-interactive execution.
+
+**Example configuration with system environment variable:**
+```json
+{
+  "mcpServers": {
+    "cursor-cloud-agents": {
+      "command": "npx",
+      "args": ["-y", "cursor-cloud-agent-mcp"]
+    }
+  }
+}
+```
+(Ensure `CURSOR_API_KEY` is set in your system environment)
+
+**Example configuration with globally installed package:**
+```json
+{
+  "mcpServers": {
+    "cursor-cloud-agents": {
+      "command": "cursor-cloud-agent-mcp",
+      "env": {
+        "CURSOR_API_KEY": "your-api-key-here"
+      }
+    }
+  }
+}
+```
+
+**Example configuration for local development:**
 ```json
 {
   "mcpServers": {
@@ -101,19 +182,6 @@ To integrate this server with an MCP client (such as Claude Desktop, custom MCP 
   }
 }
 ```
-
-**Example configuration with environment variable:**
-```json
-{
-  "mcpServers": {
-    "cursor-cloud-agents": {
-      "command": "node",
-      "args": ["/absolute/path/to/cursor-cloud-agent-mcp/dist/index.js"]
-    }
-  }
-}
-```
-(Ensure `CURSOR_API_KEY` is set in your system environment)
 
 ### Using the Tools
 
@@ -315,6 +383,20 @@ This MCP connector enables various automation and integration scenarios:
 
 MIT License - see LICENSE file for details
 
+## Package Information
+
+This package is published to npm as [`cursor-cloud-agent-mcp`](https://www.npmjs.com/package/cursor-cloud-agent-mcp). You can install it via:
+
+```bash
+npm install cursor-cloud-agent-mcp
+```
+
+Or use it directly with npx without installation:
+
+```bash
+npx cursor-cloud-agent-mcp
+```
+
 ## Support and Resources
 
 ### Getting Help
@@ -325,6 +407,7 @@ MIT License - see LICENSE file for details
 
 ### Related Resources
 
+- [npm Package](https://www.npmjs.com/package/cursor-cloud-agent-mcp) - Install from npm
 - [Cursor Cloud Agents API Documentation](https://cursor.com/docs)
 - [Model Context Protocol Specification](https://modelcontextprotocol.io)
 - [Cursor Dashboard](https://cursor.com/dashboard) - Manage API keys and view agent activity
