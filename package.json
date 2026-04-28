@@ -1,6 +1,6 @@
 {
   "name": "@azinod/cursor-cloud-agent-mcp",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Model Context Protocol server for Cursor Cloud Agents API - programmatically create, manage, and interact with AI-powered coding agents through MCP stdio transport. Integrate automated code generation, repository management, and agent workflows into your development tools.",
   "type": "module",
   "main": "dist/index.js",
