@@ -1,16 +1,21 @@
 {
-  "name": "@willpowell8/cursor-cloud-agent-mcp",
+  "name": "@azinod/cursor-cloud-agent-mcp",
   "version": "1.0.1",
   "description": "Model Context Protocol server for Cursor Cloud Agents API - programmatically create, manage, and interact with AI-powered coding agents through MCP stdio transport. Integrate automated code generation, repository management, and agent workflows into your development tools.",
   "type": "module",
   "main": "dist/index.js",
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "bin": {
-    "cursor-agent-mcp": "./dist/index.js"
+    "cursor-cloud-agent-mcp": "./dist/index.js"
   },
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
-    "dev": "tsx src/index.ts"
+    "dev": "tsx src/index.ts",
+    "prepack": "npm run build"
   },
   "keywords": [
     "mcp",
@@ -41,8 +46,22 @@
     "cli",
     "command-line"
   ],
-  "author": "",
+  "author": "azinod",
   "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/azinod/cursor-cloud-agent-mcp.git"
+  },
+  "homepage": "https://github.com/azinod/cursor-cloud-agent-mcp#readme",
+  "bugs": {
+    "url": "https://github.com/azinod/cursor-cloud-agent-mcp/issues"
+  },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.4"
   },

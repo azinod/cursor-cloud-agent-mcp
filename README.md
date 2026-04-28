@@ -32,7 +32,7 @@ The connector provides full programmatic control over Cursor's cloud-based AI ag
 The easiest way to use this MCP server is via `npx`, which downloads and runs the package without requiring a local installation:
 
 ```bash
-npx @willpowell/cursor-cloud-agent-mcp
+npx @azinod/cursor-cloud-agent-mcp
 ```
 
 This will automatically use the latest version from npm. The server reads the `CURSOR_API_KEY` environment variable for authentication.
@@ -43,7 +43,7 @@ For local development or if you want to install globally:
 
 **Global installation:**
 ```bash
-npm install -g @willpowell/cursor-cloud-agent-mcp
+npm install -g @azinod/cursor-cloud-agent-mcp
 ```
 
 Then run:
@@ -53,8 +53,8 @@ cursor-cloud-agent-mcp
 
 **Local installation:**
 ```bash
-npm install @willpowell/cursor-cloud-agent-mcp
-npx @willpowell/cursor-cloud-agent-mcp
+npm install @azinod/cursor-cloud-agent-mcp
+npx @azinod/cursor-cloud-agent-mcp
 ```
 
 ### Development Setup
@@ -105,9 +105,11 @@ The API key is tied to your organization and provides access to all repositories
 
 The server uses stdio transport for communication, which means it should be launched and managed by an MCP-compatible client application. The server reads from stdin and writes to stdout following the MCP protocol specification.
 
+Publishing this package to npm makes it easy to run via `npx`, but it is still a local stdio MCP server that the client spawns as a subprocess. It is not a hosted remote MCP endpoint.
+
 **Using npx (recommended):**
 ```bash
-npx @willpowell8/cursor-cloud-agent-mcp
+npx @azinod/cursor-cloud-agent-mcp
 ```
 
 **Using globally installed package:**
@@ -130,7 +132,7 @@ To integrate this server with an MCP client (such as Claude Desktop, custom MCP 
   "mcpServers": {
     "cursor-cloud-agents": {
       "command": "npx",
-      "args": ["-y", "@willpowell8/cursor-cloud-agent-mcp"],
+      "args": ["-y", "@azinod/cursor-cloud-agent-mcp"],
       "env": {
         "CURSOR_API_KEY": "your-api-key-here"
       }
@@ -147,7 +149,7 @@ The `-y` flag automatically answers "yes" to the npm prompt, ensuring non-intera
   "mcpServers": {
     "cursor-cloud-agents": {
       "command": "npx",
-      "args": ["-y", "@willpowell8/cursor-cloud-agent-mcp"]
+      "args": ["-y", "@azinod/cursor-cloud-agent-mcp"]
     }
   }
 }
@@ -159,7 +161,7 @@ The `-y` flag automatically answers "yes" to the npm prompt, ensuring non-intera
 {
   "mcpServers": {
     "cursor-cloud-agents": {
-      "command": "@willpowell8/cursor-cloud-agent-mcp",
+      "command": "cursor-cloud-agent-mcp",
       "env": {
         "CURSOR_API_KEY": "your-api-key-here"
       }
@@ -381,20 +383,20 @@ This MCP connector enables various automation and integration scenarios:
 
 ## License
 
-MIT License - see LICENSE file for details
+MIT
 
 ## Package Information
 
-This package is published to npm as [`@willpowell8/cursor-cloud-agent-mcp`](https://www.npmjs.com/package/@willpowell/cursor-cloud-agent-mcp). You can install it via:
+This package is published to npm as [`@azinod/cursor-cloud-agent-mcp`](https://www.npmjs.com/package/@azinod/cursor-cloud-agent-mcp). You can install it via:
 
 ```bash
-npm install @willpowell8/cursor-cloud-agent-mcp
+npm install @azinod/cursor-cloud-agent-mcp
 ```
 
 Or use it directly with npx without installation:
 
 ```bash
-npx @willpowell8/cursor-cloud-agent-mcp
+npx @azinod/cursor-cloud-agent-mcp
 ```
 
 ## Support and Resources
@@ -407,7 +409,7 @@ npx @willpowell8/cursor-cloud-agent-mcp
 
 ### Related Resources
 
-- [npm Package](https://www.npmjs.com/package/@willpowell8/cursor-cloud-agent-mcp) - Install from npm
+- [npm Package](https://www.npmjs.com/package/@azinod/cursor-cloud-agent-mcp) - Install from npm
 - [Cursor Cloud Agents API Documentation](https://cursor.com/docs)
 - [Model Context Protocol Specification](https://modelcontextprotocol.io)
 - [Cursor Dashboard](https://cursor.com/dashboard) - Manage API keys and view agent activity
