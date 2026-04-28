@@ -61,6 +61,7 @@ const tools: Tool[] = [
         limit: {
           type: 'number',
           description: 'Number of cloud agents to return (default: 20, max: 100)',
+          default: 20,
           minimum: 1,
           maximum: 100,
         },
@@ -140,7 +141,8 @@ const tools: Tool[] = [
         },
         model: {
           type: 'string',
-          description: 'The LLM to use (e.g., claude-4-sonnet). If not provided, we will pick the most appropriate model.',
+          description: 'Set this to an explicit model ID (e.g., claude-4-sonnet), or use "default" to use the configured default model. When omitted, Cursor uses your user default model, then your team default model, then a system default.',
+          default: 'default',
         },
         source: {
           type: 'object',
@@ -161,11 +163,13 @@ const tools: Tool[] = [
           properties: {
             autoCreatePr: {
               type: 'boolean',
-              description: 'Whether to automatically create a pull request when the agent completes',
+              description: 'Whether to automatically create a pull request when the agent completes. Default: false',
+              default: false,
             },
             openAsCursorGithubApp: {
               type: 'boolean',
-              description: 'Whether to open the pull request as the Cursor GitHub App instead of as the user',
+              description: 'Whether to open the pull request as the Cursor GitHub App instead of as the user. Only applies if autoCreatePr is true. Default: false',
+              default: false,
             },
             skipReviewerRequest: {
               type: 'boolean',
@@ -311,7 +315,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     switch (name) {
       case 'list_agents': {
         const agents = await apiClient.listAgents(
-          args?.limit as number | undefined,
+          (args?.limit as number | undefined) ?? 20,
           args?.cursor as string | undefined
         );
         return {
@@ -353,7 +357,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case 'launch_agent': {
         const agent = await apiClient.launchAgent({
           prompt: args?.prompt as LaunchAgentRequest['prompt'],
-          model: args?.model as string | undefined,
+          model: (args?.model as string | undefined) ?? 'default',
           source: args?.source as { repository: string; ref?: string },
           target: args?.target as {
             autoCreatePr?: boolean;
