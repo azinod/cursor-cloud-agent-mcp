@@ -8,6 +8,14 @@
         "CURSOR_API_KEY": "${env:CURSOR_API_KEY}",
         "NODE_TLS_REJECT_UNAUTHORIZED": "1"
       }
+    },
+    "cursor-cloud-agents": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@azinod/cursor-cloud-agent-mcp"],
+      "env": {
+        "CURSOR_API_KEY": "${env:CURSOR_API_KEY}"
+      }
     }
   }
 }
