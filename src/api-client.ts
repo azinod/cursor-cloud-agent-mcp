@@ -99,6 +99,11 @@ export interface RepositoriesResponse {
   repositories: Repository[];
 }
 
+interface ApiErrorResponse {
+  message?: string;
+  error?: string;
+}
+
 export class CursorApiClient {
   private baseUrl = 'https://api.cursor.com';
   private apiKey: string;
@@ -143,7 +148,7 @@ export class CursorApiClient {
     if (!response.ok) {
       let errorMessage = `API request failed with status ${response.status}`;
       try {
-        const errorData = await response.json();
+        const errorData = (await response.json()) as ApiErrorResponse;
         errorMessage = errorData.message || errorData.error || errorMessage;
       } catch {
         // Ignore JSON parse errors
@@ -167,7 +172,7 @@ export class CursorApiClient {
       return {} as T;
     }
 
-    return response.json();
+    return (await response.json()) as T;
   }
 
   async listAgents(limit?: number, cursor?: string): Promise<AgentListResponse> {

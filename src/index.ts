@@ -12,6 +12,7 @@ import {
   ListToolsRequestSchema,
   Tool,
 } from '@modelcontextprotocol/sdk/types.js';
+import type { FollowUpRequest, LaunchAgentRequest } from './api-client.js';
 import { CursorApiClient } from './api-client.js';
 
 const API_KEY_ENV = 'CURSOR_API_KEY';
@@ -351,7 +352,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       case 'launch_agent': {
         const agent = await apiClient.launchAgent({
-          prompt: args?.prompt as { text: string; images?: unknown[] },
+          prompt: args?.prompt as LaunchAgentRequest['prompt'],
           model: args?.model as string | undefined,
           source: args?.source as { repository: string; ref?: string },
           target: args?.target as {
@@ -379,7 +380,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const result = await apiClient.addFollowUp(
           args?.id as string,
           {
-            prompt: args?.prompt as { text: string; images?: unknown[] },
+            prompt: args?.prompt as FollowUpRequest['prompt'],
           }
         );
         return {

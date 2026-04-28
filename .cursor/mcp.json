@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "cursor-cloud-agent-local": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["${workspaceFolder}/dist/index.js"],
+      "env": {
+        "CURSOR_API_KEY": "${env:CURSOR_API_KEY}",
+        "NODE_TLS_REJECT_UNAUTHORIZED": "1"
+      }
+    }
+  }
+}
