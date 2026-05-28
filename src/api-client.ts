@@ -86,6 +86,37 @@ export function buildBasicAuthHeader(apiKey: string): string {
   return `Basic ${encoded}`;
 }
 
+/**
+ * Release an SSE (or other) response body reader. Cancels the reader and
+ * underlying stream when `cancel` is true (truncation or incomplete read).
+ */
+export async function releaseStreamReader(
+  reader: ReadableStreamDefaultReader<Uint8Array>,
+  body?: ReadableStream<Uint8Array> | null,
+  options?: { cancel?: boolean }
+): Promise<void> {
+  const shouldCancel = options?.cancel ?? true;
+  if (shouldCancel) {
+    try {
+      await reader.cancel();
+    } catch {
+      // Reader may already be closed
+    }
+    if (body) {
+      try {
+        await body.cancel();
+      } catch {
+        // Body may already be closed
+      }
+    }
+  }
+  try {
+    reader.releaseLock();
+  } catch {
+    // Lock may already be released after cancel
+  }
+}
+
 export class CursorApiClient {
   private baseUrl = 'https://api.cursor.com';
   private apiKey: string;
@@ -306,6 +337,7 @@ export class CursorApiClient {
     const reader = body.getReader();
     const decoder = new TextDecoder();
     let buffer = '';
+    let streamCompleted = false;
 
     const flushBlock = (block: string) => {
       if (!block.trim()) return;
@@ -326,37 +358,48 @@ export class CursorApiClient {
       }
     };
 
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      bytesRead += value.byteLength;
-      if (bytesRead > maxBytes) {
-        truncated = true;
-        break;
-      }
-      buffer += decoder.decode(value, { stream: true });
-      let splitIndex: number;
-      while ((splitIndex = buffer.indexOf('\n\n')) !== -1) {
-        const block = buffer.slice(0, splitIndex);
-        buffer = buffer.slice(splitIndex + 2);
-        flushBlock(block);
-        if (events.length >= maxEvents) {
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) {
+          streamCompleted = true;
+          break;
+        }
+        bytesRead += value.byteLength;
+        if (bytesRead > maxBytes) {
           truncated = true;
-          await reader.cancel();
-          return { events, truncated, retentionSeconds };
+          break;
+        }
+        buffer += decoder.decode(value, { stream: true });
+        let splitIndex: number;
+        while ((splitIndex = buffer.indexOf('\n\n')) !== -1) {
+          const block = buffer.slice(0, splitIndex);
+          buffer = buffer.slice(splitIndex + 2);
+          flushBlock(block);
+          if (events.length >= maxEvents) {
+            truncated = true;
+            break;
+          }
+        }
+        if (truncated) {
+          break;
         }
       }
-    }
 
-    if (buffer.trim()) {
-      flushBlock(buffer);
-    }
+      if (!truncated && buffer.trim()) {
+        flushBlock(buffer);
+      }
 
-    if (events.length >= maxEvents) {
-      truncated = true;
-    }
+      if (events.length >= maxEvents) {
+        truncated = true;
+      }
 
-    return { events, truncated, retentionSeconds };
+      return { events, truncated, retentionSeconds };
+    } finally {
+      await releaseStreamReader(reader, body, {
+        cancel: truncated || !streamCompleted,
+      });
+    }
   }
 
   async listArtifacts(agentId: string): Promise<ListArtifactsResponse> {
