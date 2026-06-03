@@ -1,172 +1,59 @@
 # Cursor Cloud Agent MCP Connector
 
-A comprehensive Model Context Protocol (MCP) server implementation that provides seamless access to Cursor's Cloud Agents API through stdio transport. This connector enables developers to programmatically create, manage, and interact with AI-powered coding agents, automate code generation workflows, and integrate Cursor's agent capabilities into their development tools and applications.
+A Model Context Protocol (MCP) server that exposes the **Cursor Cloud Agents API v1** over stdio transport. Create durable agents, manage runs, stream progress, and work with artifacts programmatically from any MCP-compatible client.
 
 ## Overview
 
-This MCP server implementation exposes the Cursor Cloud Agents API as a set of standardized MCP tools, making it easy to integrate automated code generation, repository management, and agent orchestration into any MCP-compatible application. Built with TypeScript for type safety and reliability, the server communicates via stdio transport following the Model Context Protocol specification, ensuring compatibility with a wide range of MCP clients and development environments.
+This package (`@azinod/cursor-cloud-agent-mcp` **v2.x**) maps v1 REST endpoints to MCP tools. v1 separates a durable **agent** from one or more **runs**: each prompt creates a run; status, results, streaming, and cancellation are run-scoped.
 
-The connector provides full programmatic control over Cursor's cloud-based AI agents, allowing you to launch agents on GitHub repositories, manage agent lifecycles, retrieve conversation histories, configure pull request automation, and monitor agent status—all through a unified MCP interface.
+- **OpenAPI (v1)**: <https://cursor.com/docs-static/cloud-agents-openapi.yaml>
+- **API docs**: <https://cursor.com/docs/cloud-agent/api/endpoints>
+- **Legacy v0 OpenAPI**: <https://cursor.com/docs-static/cloud-agents-openapi-v0.yaml>
+
+Authentication uses `CURSOR_API_KEY` with HTTP Basic Auth (API key as username, empty password), matching Cursor’s documentation.
+
+## Breaking changes in v2.0.0
+
+| v1.x (v0 API) | v2.0.0 (v1 API) | Notes |
+|---------------|-----------------|-------|
+| `launch_agent` | `create_agent` | Returns `{ agent, run }`, not a single agent object |
+| `add_followup` | `create_run` | Requires `agentId`; returns `{ run }` |
+| `stop_agent` | `cancel_run` | Requires `agentId` and `runId` |
+| `get_agent_conversation` | *(removed)* | Use `get_run`, `list_runs`, or `stream_run` |
+| `list_agents` response | `items` + `nextCursor` | Was `agents` |
+| `list_models` response | `items` | Was `models` string array |
+| `list_repositories` response | `items[].url` | Was `repositories[]` with owner/name |
+| Agent status | `ACTIVE` / `ARCHIVED` | Run status: `CREATING`, `RUNNING`, `FINISHED`, etc. |
+| Image inputs | `data` + `mimeType` or `url` | v0 used `data` + `dimension` only |
 
 ## Features
 
-- **Broad v0 Coverage**: Implements the main legacy v0 Cloud Agents API endpoints as MCP tools, including agent creation, management, conversation retrieval, and repository operations
-- **Type-Safe Implementation**: Built entirely with TypeScript, providing comprehensive type definitions for all API requests, responses, and agent data structures
-- **Robust Error Handling**: Intelligent error handling with detailed error messages for authentication failures, rate limiting, API errors, and network issues
-- **Rate Limit Management**: Built-in awareness and graceful handling of Cursor API rate limits with clear error messaging
-- **Secure Authentication**: Environment variable-based API key authentication following Cursor's Basic Authentication requirements
-- **MCP Protocol Compliance**: Full adherence to Model Context Protocol specification with stdio transport support
-- **Developer-Friendly**: Clean, well-documented codebase with comprehensive tool descriptions and parameter validation
-- **Production Ready**: Error handling, type safety, and proper async/await patterns for reliable operation in production environments
-
-## API Version Support
-
-This MCP server currently wraps the legacy Cursor Cloud Agents API v0 endpoints under `/v0/*`. You can see that directly in [`src/api-client.ts`](src/api-client.ts), where every request path targets `/v0/agents`, `/v0/me`, `/v0/models`, or `/v0/repositories`.
-
-Cursor's current Cloud Agents API documentation is now versioned under `/v1/*`, while the v0 docs remain available during the migration window:
-
-- **Current API docs (v1)**: <https://cursor.com/docs/cloud-agent/api/endpoints>
-- **Current OpenAPI spec (v1)**: <https://cursor.com/docs-static/cloud-agents-openapi.yaml>
-- **Legacy API docs (v0)**: <https://cursor.com/docs/cloud-agent/api/v0>
-- **Legacy OpenAPI spec (v0)**: <https://cursor.com/docs-static/cloud-agents-openapi-v0.yaml>
-
-### What This Server Uses Today
-
-- **Implemented API version**: v0
-- **Current Cursor API version**: v1
-- **MCP coverage within v0**: 10 tools covering the main lifecycle, conversation, metadata, model, and repository endpoints
-
-### Legacy v0 Endpoints Not Available As MCP Tools
-
-The current MCP server does **not** expose these documented v0 endpoints:
-
-| HTTP Method | v0 Endpoint | Purpose |
-| ----------- | ----------- | ------- |
-| `GET` | `/v0/agents/{id}/artifacts` | List artifacts generated by an agent |
-| `GET` | `/v0/agents/{id}/artifacts/download` | Get a presigned download URL for an artifact |
-
-### Current v1 API Status
-
-The current Cursor Cloud Agents API is v1, but this MCP server does **not** yet expose v1-specific resources or workflows as MCP tools. That means the following documented v1 endpoint groups are currently unavailable through MCP in this repository:
-
-- **Agent and run model**: `POST /v1/agents`, `GET /v1/agents`, `GET /v1/agents/{id}`, `POST /v1/agents/{id}/runs`, `GET /v1/agents/{id}/runs`, `GET /v1/agents/{id}/runs/{runId}`
-- **Run streaming and cancellation**: `GET /v1/agents/{id}/runs/{runId}/stream`, `POST /v1/agents/{id}/runs/{runId}/cancel`
-- **Agent lifecycle controls**: `POST /v1/agents/{id}/archive`, `POST /v1/agents/{id}/unarchive`, `DELETE /v1/agents/{id}`
-- **Artifacts**: `GET /v1/agents/{id}/artifacts`, `GET /v1/agents/{id}/artifacts/download`
-- **Metadata**: `GET /v1/me`, `GET /v1/models`, `GET /v1/repositories`
-
-In practice, this means the MCP server still uses the older flat v0 surface (`agents`, `followup`, `stop`, `conversation`) rather than the newer v1 agent-plus-runs model.
+- **v1 agent + run lifecycle**: create agents, follow-up runs, list/get runs, cancel runs, SSE stream helper
+- **Agent lifecycle**: archive, unarchive, permanent delete
+- **Artifacts**: list and presigned download URLs
+- **Metadata**: API key info, models (with params/variants), repositories
+- **Create-time options**: `repos`, `workOnCurrentBranch`, `autoCreatePR`, `skipReviewerRequest`, `env`, `envVars`, `mcpServers`, `customSubagents`, `mode`, v1 image shape
+- **Type-safe TypeScript** types aligned with the v1 OpenAPI spec
+- **Secure auth**: `CURSOR_API_KEY` via Basic Auth (no secrets logged or stored)
 
 ## Installation
 
 ### Prerequisites
 
-- Node.js 18 or higher
-- npm (comes with Node.js)
-- A Cursor API key (obtainable from Cursor Dashboard → Integrations)
+- Node.js 18+
+- Cursor API key ([Cursor Dashboard → Integrations](https://cursor.com/dashboard))
 
-### Quick Start with npx (Recommended)
-
-The easiest way to use this MCP server is via `npx`, which downloads and runs the package without requiring a local installation:
+### Quick start (npx)
 
 ```bash
+export CURSOR_API_KEY=key_...
 npx @azinod/cursor-cloud-agent-mcp
 ```
 
-This will automatically use the latest version from npm. The server reads the `CURSOR_API_KEY` environment variable for authentication.
+If `npx` fails from a stale cache: `rm -rf ~/.npm/_npx` and retry.
 
-If `npx` fails to start the package on a machine that previously ran it, clear the temporary npm execution cache with `rm -rf ~/.npm/_npx` and try again.
+### MCP client configuration
 
-### Local Installation (Optional)
-
-For local development or if you want to install globally:
-
-**Global installation:**
-```bash
-npm install -g @azinod/cursor-cloud-agent-mcp
-```
-
-Then run:
-```bash
-cursor-cloud-agent-mcp
-```
-
-**Local installation:**
-```bash
-npm install @azinod/cursor-cloud-agent-mcp
-npx @azinod/cursor-cloud-agent-mcp
-```
-
-### Development Setup
-
-If you want to contribute or modify the code:
-
-1. Clone this repository:
-```bash
-git clone <repository-url>
-cd cursor-cloud-agent-mcp
-```
-
-2. Install dependencies:
-```bash
-npm install
-```
-
-3. Build the TypeScript project:
-```bash
-npm run build
-```
-
-The compiled JavaScript will be available in the `dist/` directory.
-
-## Configuration
-
-### API Key Setup
-
-Authentication is required to access the Cursor Cloud Agents API. Set the `CURSOR_API_KEY` environment variable with your Cursor API key:
-
-```bash
-export CURSOR_API_KEY=key_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-```
-
-**Obtaining an API Key:**
-
-1. Navigate to your [Cursor Dashboard](https://cursor.com/dashboard)
-2. Go to the **Integrations** section
-3. Create a new API key for Cloud Agents API access
-4. Copy the generated key (format: `key_...`)
-5. Set it as an environment variable before running the MCP server
-
-The API key is tied to your organization and provides access to all repositories and agents associated with your Cursor account.
-
-## Usage
-
-### Running the MCP Server
-
-The server uses stdio transport for communication, which means it should be launched and managed by an MCP-compatible client application. The server reads from stdin and writes to stdout following the MCP protocol specification.
-
-Publishing this package to npm makes it easy to run via `npx`, but it is still a local stdio MCP server that the client spawns as a subprocess. It is not a hosted remote MCP endpoint.
-
-**Using npx (recommended):**
-```bash
-npx @azinod/cursor-cloud-agent-mcp
-```
-
-**Using globally installed package:**
-```bash
-cursor-cloud-agent-mcp
-```
-
-**Local development mode (with TypeScript):**
-```bash
-npm run dev
-```
-
-### MCP Client Configuration
-
-To integrate this server with an MCP client (such as Claude Desktop, custom MCP applications, or other Model Context Protocol implementations), add the following configuration to your MCP client settings:
-
-**Example configuration for Claude Desktop (using npx):**
 ```json
 {
   "mcpServers": {
@@ -182,287 +69,88 @@ To integrate this server with an MCP client (such as Claude Desktop, custom MCP 
 }
 ```
 
-The `-y` flag automatically answers "yes" to the npm prompt, ensuring non-interactive execution.
+## Available MCP tools (16)
 
-**Example configuration with system environment variable:**
-```json
-{
-  "mcpServers": {
-    "cursor-cloud-agents": {
-      "command": "npx",
-      "args": ["-y", "@azinod/cursor-cloud-agent-mcp"],
-      "env": {
-        "NODE_TLS_REJECT_UNAUTHORIZED": "1"
-      }
-    }
-  }
-}
-```
-(Ensure `CURSOR_API_KEY` is set in your system environment)
+### Agents
 
-**Example configuration with globally installed package:**
-```json
-{
-  "mcpServers": {
-    "cursor-cloud-agents": {
-      "command": "cursor-cloud-agent-mcp",
-      "env": {
-        "CURSOR_API_KEY": "your-api-key-here",
-        "NODE_TLS_REJECT_UNAUTHORIZED": "1"
-      }
-    }
-  }
-}
-```
+| Tool | HTTP | Description |
+|------|------|-------------|
+| `list_agents` | `GET /v1/agents` | Paginated agents (`limit`, `cursor`, `prUrl`, `includeArchived`) |
+| `get_agent` | `GET /v1/agents/{id}` | Durable agent metadata |
+| `create_agent` | `POST /v1/agents` | Create agent + initial run |
+| `archive_agent` | `POST /v1/agents/{id}/archive` | Archive (no new runs) |
+| `unarchive_agent` | `POST /v1/agents/{id}/unarchive` | Restore active agent |
+| `delete_agent` | `DELETE /v1/agents/{id}` | Permanent delete |
 
-**Example configuration for local development:**
-```json
-{
-  "mcpServers": {
-    "cursor-cloud-agents": {
-      "command": "node",
-      "args": ["/absolute/path/to/cursor-cloud-agent-mcp/dist/index.js"],
-      "env": {
-        "CURSOR_API_KEY": "your-api-key-here",
-        "NODE_TLS_REJECT_UNAUTHORIZED": "1"
-      }
-    }
-  }
-}
-```
+### Runs
 
-### Using the Tools
+| Tool | HTTP | Description |
+|------|------|-------------|
+| `create_run` | `POST /v1/agents/{id}/runs` | Follow-up prompt as new run |
+| `list_runs` | `GET /v1/agents/{id}/runs` | Paginated runs |
+| `get_run` | `GET /v1/agents/{id}/runs/{runId}` | Status, `result`, `git` |
+| `cancel_run` | `POST .../runs/{runId}/cancel` | Cancel active run |
+| `stream_run` | `GET .../runs/{runId}/stream` | Collect SSE events (bounded; see below) |
 
-Once configured, the MCP client can invoke any of the available tools. Each tool corresponds to a Cursor Cloud Agents API endpoint and accepts parameters as defined in the tool schema. The server handles authentication, request formatting, error handling, and response parsing automatically.
+### Artifacts & metadata
 
-### `npx` Troubleshooting
+| Tool | HTTP | Description |
+|------|------|-------------|
+| `list_artifacts` | `GET /v1/agents/{id}/artifacts` | Workspace artifacts |
+| `download_artifact` | `GET .../artifacts/download?path=` | 15-minute presigned URL |
+| `get_api_key_info` | `GET /v1/me` | API key metadata |
+| `list_models` | `GET /v1/models` | Models for `create_agent.model.id` |
+| `list_repositories` | `GET /v1/repositories` | GitHub repos (strict rate limits) |
 
-- If startup fails from a corrupted temp install, clear `~/.npm/_npx` and retry.
-- If your shell or client environment sets `NODE_TLS_REJECT_UNAUTHORIZED=0`, override it back to `1` in the MCP server `env` block.
-- If `npx` remains flaky on a given machine, test the package with `npm install -g @azinod/cursor-cloud-agent-mcp` and run `cursor-cloud-agent-mcp` directly to isolate npm cache issues from MCP issues.
+### `create_agent` highlights
 
-## Available MCP Tools
+- **`prompt`**: `{ text, images? }` — images use `data`+`mimeType` or `url` (see OpenAPI)
+- **`repos`**: `[{ url, startingRef?, prUrl? }]`
+- **`model`**: `{ id, params? }` — omit for default model
+- **`workOnCurrentBranch`**, **`autoCreatePR`**, **`skipReviewerRequest`**
+- **`env`**: `{ type: cloud|pool|machine, name? }`
+- **`envVars`**, **`mcpServers`**, **`customSubagents`**, **`mode`**: `agent` | `plan`
 
-The server exposes 10 tools covering all aspects of Cursor Cloud Agents API functionality. Each tool is fully typed and includes comprehensive parameter validation.
+Response: `{ "agent": { ... }, "run": { ... } }` — store `run.id` for polling and cancellation.
 
-### Agent Lifecycle Management
+### `stream_run` behavior
 
-- **`list_agents`**: Retrieve a paginated list of all cloud agents associated with the authenticated user's account. Supports pagination via cursor-based navigation.
-  - Parameters: 
-    - `limit` (optional, number): Number of agents to return (default: 20, max: 100)
-    - `cursor` (optional, string): Pagination cursor from previous response for retrieving additional pages
-  
-- **`get_agent`**: Fetch detailed status information for a specific cloud agent, including current state, repository details, branch information, pull request URLs, and completion summary.
-  - Parameters: 
-    - `id` (required, string): Unique agent identifier (e.g., `bc_abc123`)
-  
-- **`get_agent_conversation`**: Retrieve the complete conversation history between the user and a cloud agent, including all prompts, follow-ups, and assistant responses. Useful for understanding agent decision-making and debugging agent behavior.
-  - Parameters: 
-    - `id` (required, string): Unique agent identifier
-  
-- **`launch_agent`**: Create and start a new cloud agent to work on a specified GitHub repository. The agent will analyze the codebase, execute the provided instructions, and generate code changes.
-  - Parameters: 
-    - `prompt` (required, object): Task instructions with optional image attachments
-      - `text` (required, string): Instruction text describing the task
-      - `images` (optional, array): Up to 5 images with base64 data and dimensions
-    - `source` (required, object): Repository source configuration
-      - `repository` (required, string): GitHub repository URL
-      - `ref` (optional, string): Git branch, tag, or commit hash to use as base
-    - `model` (optional, string): LLM model to use (e.g., `claude-4-sonnet`). Omit for auto-selection
-    - `target` (optional, object): Target branch and PR configuration
-      - `branchName` (optional, string): Custom branch name
-      - `autoCreatePr` (optional, boolean): Automatically create PR on completion
-      - `openAsCursorGithubApp` (optional, boolean): Open PR as Cursor GitHub App
-      - `skipReviewerRequest` (optional, boolean): Skip adding user as reviewer
-    - `webhook` (optional, object): Webhook configuration for status notifications
-      - `url` (required, string): Webhook endpoint URL
-      - `secret` (optional, string): Webhook secret for payload verification (min 32 chars)
-  
-- **`add_followup`**: Send additional instructions to an existing cloud agent. Useful for iterating on agent work, requesting modifications, or providing clarifications.
-  - Parameters: 
-    - `id` (required, string): Unique agent identifier
-    - `prompt` (required, object): Follow-up instructions with optional images
-      - `text` (required, string): Follow-up instruction text
-      - `images` (optional, array): Up to 5 images with base64 data and dimensions
-  
-- **`stop_agent`**: Pause execution of a currently running cloud agent without deleting it. Stopped agents can be resumed by sending a follow-up prompt.
-  - Parameters: 
-    - `id` (required, string): Unique agent identifier
-  
-- **`delete_agent`**: Permanently delete a cloud agent and all associated data. This action cannot be undone.
-  - Parameters: 
-    - `id` (required, string): Unique agent identifier
-
-### Utility and Information Tools
-
-- **`get_api_key_info`**: Retrieve metadata about the API key currently being used for authentication, including key name, creation date, and associated user email.
-  - Parameters: None
-  
-- **`list_models`**: Get a list of recommended LLM models available for use with cloud agents. Helps in selecting the appropriate model for specific tasks.
-  - Parameters: None
-  
-- **`list_repositories`**: Retrieve all GitHub repositories accessible to the authenticated user. **Note:** This endpoint has strict rate limits (1 request per minute, 30 per hour) and may take tens of seconds for users with many repositories.
-  - Parameters: None
-
-## API Endpoint Mapping
-
-This MCP server currently provides a v0 wrapper around the legacy Cursor Cloud Agents API, mapping each implemented REST endpoint to a corresponding MCP tool:
-
-| MCP Tool | HTTP Method | API Endpoint | Description |
-|----------|-------------|--------------|-------------|
-| `list_agents` | GET | `/v0/agents` | Paginated list of all cloud agents |
-| `get_agent` | GET | `/v0/agents/{id}` | Detailed agent status and metadata |
-| `get_agent_conversation` | GET | `/v0/agents/{id}/conversation` | Complete conversation history |
-| `launch_agent` | POST | `/v0/agents` | Create and start a new agent |
-| `add_followup` | POST | `/v0/agents/{id}/followup` | Send follow-up instructions |
-| `stop_agent` | POST | `/v0/agents/{id}/stop` | Pause agent execution |
-| `delete_agent` | DELETE | `/v0/agents/{id}` | Permanently delete an agent |
-| `get_api_key_info` | GET | `/v0/me` | API key metadata and user info |
-| `list_models` | GET | `/v0/models` | Available LLM models |
-| `list_repositories` | GET | `/v0/repositories` | Accessible GitHub repositories |
-
-All API interactions use Basic Authentication with your API key, and the server handles request formatting, response parsing, and error translation automatically.
-
-## Rate Limits and Best Practices
-
-The Cursor Cloud Agents API implements rate limiting to ensure fair usage and system stability. This MCP server handles rate limit errors gracefully and provides clear error messages when limits are exceeded.
-
-### Rate Limit Handling
-
-When a rate limit is exceeded, the server will return a `429 Too Many Requests` error with a descriptive message. The server does not implement automatic retry logic, allowing clients to implement their own backoff strategies as needed.
-
-### Best Practices
-
-- **Repository Listing**: The `list_repositories` endpoint has very strict limits (1/minute, 30/hour). Cache results when possible.
-- **Agent Polling**: When monitoring agent status, poll at reasonable intervals (e.g., every 30-60 seconds) rather than continuously.
-- **Error Handling**: Implement exponential backoff in your MCP client when encountering rate limit errors.
-- **Batch Operations**: When creating multiple agents, space out requests to avoid hitting rate limits.
-
-For detailed rate limit information, refer to the [Cursor API documentation](https://cursor.com/docs).
-
-## Error Handling
-
-The server provides comprehensive error handling for all API interaction scenarios. Errors are translated into user-friendly messages and returned in the standard MCP protocol error format.
-
-### HTTP Status Code Mapping
-
-- **400 Bad Request**: Invalid request parameters or missing required fields
-- **401 Unauthorized**: Invalid, missing, or expired API key
-- **403 Forbidden**: Valid API key but insufficient permissions (e.g., Enterprise features on non-Enterprise plan)
-- **404 Not Found**: Requested agent, repository, or resource does not exist
-- **429 Too Many Requests**: Rate limit exceeded - implement exponential backoff
-- **500 Internal Server Error**: Cursor API server-side error - contact support if persistent
-
-### Error Response Format
-
-All errors are returned as MCP error responses with descriptive messages:
-
-```json
-{
-  "content": [
-    {
-      "type": "text",
-      "text": "Error: Rate limit exceeded: Rate limit exceeded. Please try again later."
-    }
-  ],
-  "isError": true
-}
-```
-
-The server automatically handles network errors, JSON parsing errors, and unexpected API responses, ensuring robust operation in production environments.
+MCP stdio is request/response; this tool **reads the SSE stream until the run ends or limits are hit** (`maxEvents`, `maxBytes`), then returns collected events as JSON. For long runs, prefer polling `get_run` or calling `stream_run` again with `lastEventId` to resume.
 
 ## Development
 
-### Building the Project
-
-Compile TypeScript to JavaScript:
-
 ```bash
+npm install
 npm run build
-```
-
-The compiled output will be in the `dist/` directory, ready for production use.
-
-### Development Mode
-
-Run the server directly from TypeScript source with hot reloading:
-
-```bash
+npm test
 npm run dev
 ```
 
-This uses `tsx` to execute TypeScript directly without a build step, useful for development and testing.
-
-### Project Structure
+### Project structure
 
 ```
-cursor-cloud-agent-mcp/
-├── src/
-│   ├── index.ts          # Main MCP server implementation with tool definitions
-│   └── api-client.ts     # Cursor Cloud Agents API client with type definitions
-├── dist/                 # Compiled JavaScript output (generated)
-├── package.json          # Project configuration and dependencies
-├── tsconfig.json         # TypeScript compiler configuration
-├── .gitignore           # Git ignore patterns
-└── README.md            # This file
+src/
+  index.ts           # MCP server entry
+  api-client.ts      # v1 HTTP client
+  types.ts           # OpenAPI-aligned types
+  mcp-tools.ts       # Tool schemas
+  tool-handlers.ts   # Tool dispatch
+  api-client.test.ts # Unit tests (no live API)
 ```
 
-### TypeScript Configuration
+## Rate limits
 
-The project uses strict TypeScript settings with ES2022 target and ES modules. All API types are defined in `api-client.ts` for full type safety across the codebase.
+`list_repositories` is heavily rate-limited (about 1/min, 30/hour). The client surfaces `429` with clear messages; implement backoff in your client.
 
-### Contributing
+## Error handling
 
-When contributing to this project:
-
-1. Ensure all TypeScript code compiles without errors
-2. Maintain type safety - avoid `any` types
-3. Follow existing code style and error handling patterns
-4. Update tool descriptions if adding new functionality
-5. Test with actual Cursor API endpoints when possible
-
-## Use Cases
-
-This MCP connector enables various automation and integration scenarios:
-
-- **CI/CD Integration**: Automate code generation and testing workflows in continuous integration pipelines
-- **Development Automation**: Create agents programmatically to handle repetitive coding tasks
-- **Repository Management**: Bulk operations on multiple repositories with consistent agent configurations
-- **Monitoring and Analytics**: Track agent performance, completion rates, and code generation metrics
-- **Custom Development Tools**: Build custom interfaces and dashboards for managing Cursor cloud agents
-- **Workflow Orchestration**: Integrate agent creation and management into larger development workflows
-- **Testing and QA**: Automate test case generation and code review processes using AI agents
+v1 errors use `{ "error": { "code", "message" } }`. The MCP server returns `isError: true` with a text message for tool failures.
 
 ## License
 
 MIT
 
-## Package Information
+## Package
 
-This package is published to npm as [`@azinod/cursor-cloud-agent-mcp`](https://www.npmjs.com/package/@azinod/cursor-cloud-agent-mcp). You can install it via:
-
-```bash
-npm install @azinod/cursor-cloud-agent-mcp
-```
-
-Or use it directly with npx without installation:
-
-```bash
-npx @azinod/cursor-cloud-agent-mcp
-```
-
-## Support and Resources
-
-### Getting Help
-
-- **MCP Connector Issues**: Open an issue in this repository's issue tracker
-- **Cursor API Questions**: Refer to the [official Cursor API documentation](https://cursor.com/docs)
-- **MCP Protocol**: Learn more about Model Context Protocol at the [MCP specification](https://modelcontextprotocol.io)
-
-### Related Resources
-
-- [npm Package](https://www.npmjs.com/package/@azinod/cursor-cloud-agent-mcp) - Install from npm
-- [Cursor Cloud Agents API Documentation](https://cursor.com/docs)
-- [Model Context Protocol Specification](https://modelcontextprotocol.io)
-- [Cursor Dashboard](https://cursor.com/dashboard) - Manage API keys and view agent activity
-
+- npm: [@azinod/cursor-cloud-agent-mcp](https://www.npmjs.com/package/@azinod/cursor-cloud-agent-mcp)
+- Issues: [GitHub](https://github.com/azinod/cursor-cloud-agent-mcp/issues)
